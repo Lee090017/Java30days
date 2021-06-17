@@ -1,0 +1,151 @@
+文档中心：
+https://open.iot.10086.cn/doc/art254.html
+
+二、接入方式及端口
+
+TCP透传接入：183.230.40.40   1811   /dtu.heclouds.com
+EDP方式接入：183.230.40.39/jjfaedp.hedevice.com   876
+NBIOT方式接入：nbiotbt.heclouds.com   5683
+MQTT接入：mqtt.heclouds.com  183.230.40.39  6002
+HTTP接入：api.heclouds.com/183.230.40.33   80
+
+三、使用说明
+
+HTTP接入
+
+1、上传信息
+
+//一定要以回车换行结尾,id为创建设备时的ID,api key为创建设备指定的ID
+POST /devices/528150915/datapoints?type=3 HTTP/1.1
+api-key:jkdhEWNrl=Q01HiNCrKdqxskhNg=
+Host:api.heclouds.com
+Content-Length: 14
+
+{"value":12 }
+
+POST /devices/528150915/datapoints?type=3 HTTP/1.1
+api-key:jkdhEWNrl=Q01HiNCrKdqxskhNg=
+Host:api.heclouds.com
+Content-Length: 21
+
+{"temp":12,"humi":65}
+
+2、获取信息
+
+//get信息,注意最后有2个换行
+GET /devices/528150915/datapoints HTTP/1.1
+api-key:jkdhEWNrl=Q01HiNCrKdqxskhNg=
+Host:api.heclouds.com
+
+
+//平台应答
+HTTP/1.1 200 OK
+Date: Sat, 01 Jun 2019 14:03:14 GMT
+Content-Type: application/json
+Content-Length: 281
+Connection: keep-alive
+Server: Apache-Coyote/1.1
+Pragma: no-cache
+
+{"errno":0,"data":{"count":3,"datastreams":[{"datapoints":[{"at":"2019-06-01 21:56:54.827","value":12}],"id":"temp"},{"datapoints":[{"at":"2019-06-01 21:56:54.829","value":65}],"id":"humi"},{"datapoints":[{"at":"2019-06-01 21:52:28.636","value":12}],"id":"value"}]},"error":"succ"}
+
+
+
+MQTT接入
+
+Mqtt只支持v3.1.1版本
+
+平台连接（1）
+设备ID：528335731   产品ID：246497    鉴权信息：mqttkey123
+发送：10 29 00 04 4D 51 54 54 04 C2 00 64 00 09 35 32 38 33 33 35 37 33 31 00 06 32 34 36 34 39 37 00 0A 6D 71 74 74 6B 65 79 31 32 33
+收到：20 02 01 00
+
+订阅消息（8）   app_topic
+82 0E 00 0A 00 09 61 70 70 5F 74 6F 70 69 63 00   等级0
+82 0E 00 0B 00 09 61 70 70 5F 74 6F 70 69 63 01   等级1
+82 0E 00 01 00 09 61 70 70 5F 74 6F 70 69 63 02   等级2
+
+SUBACK(9)
+
+90 03 00 0A 00
+90 03 00 0B 01
+
+UNSUBSCRIBE(10)
+
+A2 0D 00 0C 00 09 61 70 70 5F 74 6F 70 69 63
+
+UNSUBACK(11)
+
+B0 02 00 0C
+
+PUBLISH(3)
+
+30 0E 00 09 6B 66 62 5F 74 6F 70 69 63 31 32 33          等级0   数据：123
+
+32 10 00 09 6B 66 62 5F 74 6F 70 69 63 00 01 31 32 33    等级1   数据：123
+
+34 10 00 09 6B 66 62 5F 74 6F 70 69 63 00 01 31 32 33    等级2   数据：123
+
+PUBREL(6)
+
+62 02 00 01                                              等级2   再次询问
+
+PUBACK(4)
+
+40 02 00 01  等级1的回复，表示签收
+
+PUBREC(5)
+
+50 02 00 01  等级2的第一次回复
+
+PUBCOMP(7)
+
+70 02 00 01  等级2的第二次回复，表示彻底完成
+
+客户端向服务端发送心跳
+发送0xC0  0x00
+
+服务端响应
+0xD0  0x00
+
+客户端主动断开连接
+0xE0  0x00
+
+采用发布消息上报数据topic=$dp(24 64 70)
+
+TYPE = 3方式，成功
+数据载体：{"temperature":22.5,"humidity":95.2}
+30 2C 00 03 24 64 70 03 00 24 7B 22 74 65 6D 70 65 72 61 74 75 72 65 22 3A 32 32 2E 35 2C 22 68 75 6D 69 64 69 74 79 22 3A 39 35 2E 32 7D
+
+TYPE = 1方式，成功
+数据载体：{"datastreams":[{"id":"led", "datapoints":[{"value": 30.2}]}]}
+30 46 00 03 24 64 70 01 00 3E 7B 22 64 61 74 61 73 74 72 65 61 6D 73 22 3A 5B 7B 22 69 64 22 3A 22 6C 65 64 22 2C 20 22 64 61 74 61 70 6F 69 6E 74 73 22 3A 5B 7B 22 76 61 6C 75 65 22 3A 20 33 30 2E 32 7D 5D 7D 5D 7D
+
+平台下发,一个开关,主题$creq/cmduuid($creq为系统下发Cmd的指令，cmduuid为该条指令的uuid，每次都不一样,最后一个字节为值--字符1/0)
+30 2D 00 2A 24 63 72 65 71 2F 66 61 62 64 32 63 63 34 2D 39 63 35 33 2D 35 36 34 33 2D 38 31 35 31 2D 32 39 32 63 33 63 37 66 38 31 61 36 31
+
+30 2D 00 2A 24 63 72 65 71 2F 65 35 38 64 31 32 30 35 2D 62 65 32 65 2D 35 63 62 38 2D 61 65 63 37 2D 63 34 38 66 30 61 32 37 61 64 38 35 30
+
+APP端设备
+
+平台连接（1）
+产品ID：246497  设备ID：528403566  鉴权信息：mqttapp123
+发送：10 29 00 04 4D 51 54 54 04 C2 00 64 00 09 35 32 38 34 30 33 35 36 36 00 06 32 34 36 34 39 37 00 0A 6D 71 74 74 61 70 70 31 32 33
+收到：20 02 01 00
+
+订阅消息（8）
+SUBSCRIBE(8)   kfb_topic
+
+82 0E 00 0A 00 09 6B 66 62 5F 74 6F 70 69 63 00   等级0
+82 0E 00 0B 00 09 6B 66 62 5F 74 6F 70 69 63 01   等级1
+82 0E 00 01 00 09 6B 66 62 5F 74 6F 70 69 63 02   等级2
+
+PUBLISH(3)
+
+30 0E 00 09 61 70 70 5F 74 6F 70 69 63 31 32 33         等级0   数据：123
+
+32 10 00 09 61 70 70 5F 74 6F 70 69 63 00 01 31 32 33   等级1   数据：123
+
+34 10 00 09 61 70 70 5F 74 6F 70 69 63 00 01 31 32 33   等级2   数据：123
+
+Onenet的等级2每次发送完成后，必须要断开连接，重连，才能发出去，这个等级一般不用
